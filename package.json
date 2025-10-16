@@ -1,0 +1,10 @@
+{
+  "name": "basil-youtube-thing",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter frontend --filter basil-backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter basil-backend dev"
+  }
+}
