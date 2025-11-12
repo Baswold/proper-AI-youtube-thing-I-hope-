@@ -1,0 +1,205 @@
+// Prisma schema for Basil YouTube Voice Studio
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  role          UserRole  @default(USER)
+
+  sessions      Session[]
+  recordings    Recording[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+// Session model tracks each recording session
+model Session {
+  id            String       @id @default(cuid())
+  sessionId     String       @unique // From orchestrator
+  episodeId     String?
+
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status        SessionStatus @default(ACTIVE)
+
+  // Configuration
+  sttProvider   String
+  ttsProvider   String
+  guestProvider String
+  autopilot     Boolean      @default(false)
+
+  // Metadata
+  startedAt     DateTime     @default(now())
+  endedAt       DateTime?
+  duration      Int?         // Duration in seconds
+
+  // Relationships
+  recordings    Recording[]
+  events        SessionEvent[]
+  captions      Caption[]
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Recording files for each session
+model Recording {
+  id            String    @id @default(cuid())
+
+  sessionId     String
+  session       Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  speaker       String    // 'you', 'claude', 'guest'
+  fileType      RecordingType
+  filePath      String
+  fileSize      Int?      // Size in bytes
+  duration      Int?      // Duration in seconds
+
+  // Metadata
+  mimeType      String?
+  sampleRate    Int?
+  channels      Int?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([speaker])
+}
+
+enum RecordingType {
+  AUDIO      // .webm audio files
+  CAPTION    // .vtt caption files
+  EVENT_LOG  // events.jsonl
+  METADATA   // session.yml
+}
+
+// Session events for analytics and replay
+model SessionEvent {
+  id            String    @id @default(cuid())
+
+  sessionId     String
+  session       Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  type          String    // stt.final, orb.state-change, etc.
+  speaker       String?
+
+  // Event data (JSONB for flexibility)
+  data          Json
+
+  timestamp     DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([type])
+  @@index([timestamp])
+}
+
+// Captions for searchability and analytics
+model Caption {
+  id            String    @id @default(cuid())
+
+  sessionId     String
+  session       Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  speaker       String    // 'you', 'claude', 'guest'
+  text          String
+
+  startTime     Float     // Seconds from session start
+  endTime       Float?
+
+  // For search and analytics
+  wordCount     Int?
+  sentiment     String?   // positive, negative, neutral (optional)
+
+  createdAt     DateTime  @default(now())
+
+  @@index([sessionId])
+  @@index([speaker])
+  @@index([createdAt])
+  @@fulltext([text]) // Full-text search on transcript
+}
+
+// Analytics and metrics
+model SessionMetrics {
+  id            String    @id @default(cuid())
+  sessionId     String    @unique
+
+  // Audio metrics
+  totalAudioDuration    Int     // Total seconds of audio
+  speakerDurations      Json    // Per-speaker durations
+
+  // Conversation metrics
+  totalTranscripts      Int     // Total number of transcripts
+  totalWords            Int     // Total word count
+  averageResponseTime   Float   // Average time between speakers
+
+  // LLM metrics
+  llmRequests           Int
+  llmTokensInput        Int
+  llmTokensOutput       Int
+  llmCost               Float   // Estimated cost in USD
+
+  // TTS metrics
+  ttsRequests           Int
+  ttsCharacters         Int
+  ttsCost               Float   // Estimated cost in USD
+
+  // STT metrics
+  sttDuration           Int     // Seconds of audio transcribed
+  sttCost               Float   // Estimated cost in USD
+
+  // Total cost
+  totalCost             Float   // Total estimated cost
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([sessionId])
+}
+
+// Cache for expensive operations (LLM, TTS results)
+model Cache {
+  id            String    @id @default(cuid())
+  key           String    @unique
+  value         Json
+
+  expiresAt     DateTime?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([key])
+  @@index([expiresAt])
+}
