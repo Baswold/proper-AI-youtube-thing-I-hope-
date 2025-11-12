@@ -1,0 +1,3 @@
+# CI/CD workflow files - requires manual setup due to GitHub App permissions
+# See .github/CI-WORKFLOW-SETUP.txt for instructions
+.github/workflows/
