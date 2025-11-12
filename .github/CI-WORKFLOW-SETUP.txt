@@ -1,0 +1,45 @@
+IMPORTANT: CI/CD Workflow Requires Manual Setup
+================================================
+
+A complete GitHub Actions CI/CD pipeline has been created at:
+  .github/workflows/ci.yml
+
+However, it could not be automatically pushed due to GitHub App
+permissions restrictions.
+
+TO ADD THE WORKFLOW TO YOUR REPOSITORY:
+
+Option 1 - Copy locally and push manually:
+  1. The ci.yml file is available in your local .github/workflows/ directory
+  2. You can commit it manually when ready:
+     git add .github/workflows/ci.yml
+     git commit -m "ci: Add automated CI/CD pipeline"
+     git push
+
+Option 2 - Create directly on GitHub:
+  1. Go to your repository on GitHub
+  2. Navigate to the "Actions" tab
+  3. Click "New workflow" or "set up a workflow yourself"
+  4. Copy the contents from your local .github/workflows/ci.yml
+  5. Commit directly on GitHub
+
+WHAT THE WORKFLOW PROVIDES:
+
+✅ Automated testing on every push
+✅ TypeScript type checking and linting
+✅ Backend tests with PostgreSQL and Redis
+✅ Frontend tests
+✅ Docker image builds with caching
+✅ Security vulnerability scanning
+✅ Code coverage reporting
+✅ Automated deployment to production
+
+The workflow runs automatically on:
+- Push to main, develop, or claude/* branches
+- Pull requests to main or develop
+- Manual workflow dispatch
+
+For more details, see .github/README.md
+
+Note: The workflow file remains in your local repository and can be
+added to version control whenever you're ready.
